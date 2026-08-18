@@ -1,117 +1,181 @@
 # kin
 
-Portable forward and inverse kinematics for serial chains, in one C file.
+Forward and inverse kinematics for robot arms, in one C file.
 
-- C99, only `libm` on top of the standard library
-- No `malloc`, no globals, no I/O — safe on MCUs
-- One header, one source file: drop `include/kin.h` + `src/kin.c` into any project
-- Forward by Denavit–Hartenberg, inverse by damped least squares (works for any chain, no
-  robot-specific solver to write)
+Two questions, and this library answers both:
 
-## Build
+- **Forward** — the joints are at these angles, so where is the hand?
+- **Inverse** — I want the hand *there*, so what angles do the joints need?
+
+The first is easy maths. The second is the one people give up on and hand to a
+big framework. It fits in 280 lines.
+
+- One header, one source file. Drop them into any C project.
+- Only needs `libm`. No `malloc` — works fine on a microcontroller.
+- One solver for any arm. No robot-specific maths to derive.
+
+## Try it
 
 ```sh
-make          # libkin.a + example + tests
-make check    # run the self-check
-make run      # run the 6-axis example
+make check    # run the tests
+make run      # run the 6-axis arm example
 ```
 
-Or just compile `src/kin.c` with your own build. Cap the stack usage of a small
-target with `-DKIN_MAX_JOINTS=6`.
+## Describing your arm
 
-## The API
+You describe a robot as a list of links, each with four numbers — the standard
+**Denavit–Hartenberg** parameters. Almost every arm's datasheet or URDF gives
+you these, so usually you copy them rather than work them out:
 
-Six functions, three types. That is all of it.
+| number  | in plain words |
+|---------|----------------|
+| `a`     | how long the link is |
+| `d`     | how far the next joint sits along the current joint's axis |
+| `alpha` | how much the next joint axis is twisted relative to this one |
+| `theta` | a fixed angle offset baked into the joint |
 
-### Describe the robot
+Then you say what kind of joint it is:
+
+- `KIN_REVOLUTE` — it rotates. The value you command gets **added to `theta`**.
+- `KIN_PRISMATIC` — it slides. The value you command gets **added to `d`**.
+
+So a flat two-link arm, each link 1 metre long, with both joints rotating, is
+just this:
+
+```
+        elbow
+   1m  /     \  1m
+      /       \
+   base        hand
+```
 
 ```c
-kin_link links[] = {
-    /*  d      a      alpha   theta  type          qmin   qmax  */
-    { 0.089,   0.0,   M_PI/2, 0.0,   KIN_REVOLUTE, -6.28, 6.28 },
-    { 0.0,    -0.425, 0.0,    0.0,   KIN_REVOLUTE, -6.28, 6.28 },
-    /* ... */
+static const kin_link arm2[] = {
+    /*  d    a    alpha  theta  type          qmin  qmax  */
+    {  0.0, 1.0,  0.0,   0.0,   KIN_REVOLUTE,  0,   0  },
+    {  0.0, 1.0,  0.0,   0.0,   KIN_REVOLUTE,  0,   0  },
 };
-kin_chain arm = { links, 2 };
+static const kin_chain arm = { arm2, 2 };   /* 2 = number of joints */
 ```
 
-Standard (distal) DH: `T = Rz(theta) Tz(d) Tx(a) Rx(alpha)`. A `KIN_REVOLUTE`
-joint adds `q` to `theta`, a `KIN_PRISMATIC` joint adds `q` to `d`. Leave
-`qmin`/`qmax` both `0` for an unlimited joint.
+`qmin`/`qmax` are the joint limits. Leave both `0` for "no limit".
 
-### Forward kinematics
+## Forward: where is the hand?
 
 ```c
-kin_mat4 pose;               /* double[16], row-major 4x4 */
-kin_forward(&arm, q, pose);       /* q has arm.n entries */
+#include "kin.h"
+#include <stdio.h>
+
+static const kin_link arm2[] = {
+    { 0.0, 1.0, 0.0, 0.0, KIN_REVOLUTE, 0, 0 },
+    { 0.0, 1.0, 0.0, 0.0, KIN_REVOLUTE, 0, 0 },
+};
+
+int main(void)
+{
+    kin_chain arm = { arm2, 2 };
+    double q[2] = { 0.0, 1.5707963 };   /* straight out, then elbow up 90 deg */
+    kin_mat4 pose;                      /* just a double[16] */
+
+    kin_forward(&arm, q, pose);
+
+    printf("hand at x=%.3f y=%.3f z=%.3f\n", pose[3], pose[7], pose[11]);
+    return 0;
+}
 ```
 
-### Inverse kinematics
+Prints `hand at x=1.000 y=1.000 z=0.000` — one metre out, one metre up, exactly
+as the drawing says. A `kin_mat4` is a plain `double[16]`, so the position is
+always at `pose[3]`, `pose[7]`, `pose[11]`.
+
+## Inverse: what angles get me there?
+
+Give it a target pose and a **seed** — a guess to start from, normally wherever
+the arm is right now. It walks from the seed to the answer:
 
 ```c
 double sol[6];
-int rc = kin_inverse(&arm, target, seed, sol, NULL);   /* NULL = default tuning */
+int rc = kin_inverse(&arm, target, current_q, sol, NULL);
+
+if (rc == KIN_OK)
+    /* sol now holds the joint values that reach `target` */;
 ```
 
-`seed` is the starting guess — usually the robot's current joint values. Returns
-`KIN_OK`, or `KIN_ENOCONV` if it ran out of iterations (`sol` still holds the
-closest iterate it found). Joint limits are respected.
+`NULL` means "use the default settings", which is usually right.
 
-Tune it when the default is not right for your arm:
+Two things to know:
+
+- It finds the solution **nearest your seed**. An arm can often reach the same
+  point elbow-up or elbow-down; you get the one closest to where you started,
+  which is normally the one you want.
+- It matches position *and* orientation — six numbers. An arm with fewer than
+  six joints cannot hit an arbitrary pose, and you will get `KIN_ENOCONV`.
+  That is the arm's limitation, not a bug.
+
+Returns `KIN_OK`, or `KIN_ENOCONV` if it ran out of iterations — `sol` still
+holds the closest it got, so you can look at how far off it was.
+
+Need to tune it? Every field left at `0` keeps its default:
 
 ```c
-kin_inverse_opts o = { 0 };       /* every field left 0 keeps its default */
-o.max_iters = 300;
-o.lambda    = 0.1;           /* more damping: slower, but stops oscillation */
+kin_inverse_opts o = { 0 };
+o.max_iters = 300;    /* default 100  - try harder */
+o.lambda    = 0.1;    /* default 0.05 - more damping if it oscillates */
 kin_inverse(&arm, target, seed, sol, &o);
 ```
 
-| field       | default | meaning                        |
-|-------------|---------|--------------------------------|
-| `pos_tol`   | 1e-4    | position tolerance, metres     |
-| `rot_tol`   | 1e-4    | orientation tolerance, radians |
-| `lambda`    | 0.05    | damping near singularities     |
-| `max_step`  | 0.2     | max joint step per iteration   |
-| `max_iters` | 100     | iteration cap                  |
+| field | default | what it is |
+|-------|---------|------------|
+| `pos_tol`   | 1e-4  | close enough, in metres |
+| `rot_tol`   | 1e-4  | close enough, in radians |
+| `lambda`    | 0.05  | damping — keeps it stable near awkward poses |
+| `max_step`  | 0.2   | biggest joint move per iteration |
+| `max_iters` | 100   | give up after this many tries |
 
-### Poses
+## Building a target pose
 
-`kin_mat4` is a plain `double[16]`, row-major, so `t[3]`, `t[7]`, `t[11]` is the
-position. Two helpers save you writing rotation matrices by hand:
+A pose is a 4x4 matrix, which is a nuisance to write by hand, so:
 
 ```c
 kin_mat4 target;
-kin_pose(0.4, 0.1, 0.3,  0.0, 1.57, 0.0, target);   /* x y z roll pitch yaw */
+kin_pose(0.4, 0.1, 0.3,  0.0, 1.5708, 0.0, target);   /* x y z  roll pitch yaw */
 
 double p[6];
-kin_pose_decompose(target, p);                      /* -> x y z roll pitch yaw */
+kin_pose_decompose(target, p);      /* back out: x y z roll pitch yaw */
 ```
 
-Rotation order is `R = Rz(yaw) Ry(pitch) Rx(roll)`.
+Rotation order is yaw, then pitch, then roll.
 
-### Jacobian
-
-Exposed because it is free — `kin_inverse` computes it anyway. 6 rows × `n` columns,
-row-major; rows 0–2 linear, rows 3–5 angular. Useful for velocity control or
-your own solver.
+## The functions
 
 ```c
-double J[6 * 6];
-kin_jacobian(&arm, q, J);
+kin_forward(&arm, q, pose);              /* joints  -> pose */
+kin_inverse(&arm, target, seed, q, opts);/* pose    -> joints */
+kin_jacobian(&arm, q, J);                /* how the hand moves per joint move */
+kin_pose(x,y,z, roll,pitch,yaw, out);
+kin_pose_decompose(pose, xyzrpy);
 ```
 
-## Layout
+`kin_jacobian` is there because the solver computes it anyway. If you are doing
+velocity control or writing your own solver you will want it; otherwise ignore
+it. It is 6 rows by *n* columns, rows 0–2 linear and 3–5 angular.
+
+## Files
 
 ```
-include/kin.h        the whole public API
-src/kin.c            the whole implementation
-examples/arm6.c      UR5: forward to a pose, then inverse back to it
-test/test_kin.c      assert-based self-check
+include/kin.h        the API, with comments
+src/kin.c            the implementation
+examples/arm6.c      a real 6-axis arm (UR5): forward, then inverse back
+test/test_kin.c      the tests
 ```
 
-## Scope
+## Limits, so you are not surprised
 
-Serial chains only. No trees, no branches, no closed loops, no dynamics, no
-trajectory planning. Inverse is numeric and local: it finds the solution nearest the
-seed, not all eight of them. That is deliberate — it is what most arms need, and
-it fits in one file.
+- Straight-line arms only — one joint after another. No branching, no legs, no
+  closed loops.
+- Position and shape only. No forces, no masses, no motion planning.
+- The inverse solver is numeric and local: it finds one solution near your
+  seed, not all of them.
+- Fewer than six joints cannot reach an arbitrary position *and* orientation.
+- `KIN_MAX_JOINTS` is 16 by default and sets the stack usage. Build with
+  `-DKIN_MAX_JOINTS=6` on a small target.
