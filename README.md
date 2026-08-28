@@ -1,4 +1,16 @@
+<p align="center">
+  <img src="assets/arm.svg"
+       alt="A two-link arm sweeping, with its joint angles"
+       width="100%">
+</p>
+
 # kin
+
+<p align="center">
+  <img alt="platform: portable C99" src="https://img.shields.io/badge/platform-portable%20C99-70e1b2?style=flat-square&labelColor=0d2238">
+  <img alt="language: C" src="https://img.shields.io/badge/language-C-70e1b2?style=flat-square&labelColor=0d2238">
+  <img alt="license: MIT" src="https://img.shields.io/badge/license-MIT-f2bd68?style=flat-square&labelColor=0d2238">
+</p>
 
 Forward and inverse kinematics for robot arms, in one C file.
 
