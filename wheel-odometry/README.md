@@ -27,6 +27,10 @@ make check    # run the tests
 make run      # walk a rover round a 1 m square
 ```
 
+To use it in your own project, copy `include/mob.h` and `src/mob.c`, link the
+CMake target `algo::wheel-odometry`, or use this folder as an ESP-IDF
+component. See [Use one library](../README.md#use-one-library).
+
 ## The three bases
 
 You describe a base with a type, a wheel radius and up to two dimensions. Which

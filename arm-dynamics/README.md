@@ -31,6 +31,10 @@ make check    # run the tests
 make run      # gravity-compensation torques for a small 2-link arm
 ```
 
+To use it in your own project, copy `include/dyn.h` and `src/dyn.c`, link the
+CMake target `algo::arm-dynamics`, or use this folder as an ESP-IDF component.
+See [Use one library](../README.md#use-one-library).
+
 ## Describing your arm
 
 The first four numbers are exactly kin's — the standard **Denavit–Hartenberg**

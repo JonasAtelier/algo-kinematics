@@ -33,6 +33,10 @@ make check    # run the tests
 make run      # run the 6-axis arm example
 ```
 
+To use it in your own project, copy `include/kin.h` and `src/kin.c`, link the
+CMake target `algo::arm-kinematics`, or use this folder as an ESP-IDF
+component. See [Use one library](../README.md#use-one-library).
+
 ## Describing your arm
 
 You describe a robot as a list of links, each with four numbers — the standard
