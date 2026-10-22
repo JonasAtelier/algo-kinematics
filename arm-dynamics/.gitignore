@@ -1,0 +1,5 @@
+*.o
+*.a
+gravity
+test_dyn
+test_cpp_linkage
