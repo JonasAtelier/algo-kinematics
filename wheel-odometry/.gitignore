@@ -1,0 +1,5 @@
+*.o
+*.a
+rover
+test_mob
+test_cpp_linkage
