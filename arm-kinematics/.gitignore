@@ -1,0 +1,5 @@
+*.o
+*.a
+arm6
+test_kin
+test_cpp_linkage
