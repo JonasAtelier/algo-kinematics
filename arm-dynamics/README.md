@@ -15,9 +15,9 @@ Two questions, and this library answers both:
 - **Forward** — the motors are pushing with *this* torque, so how does the arm
   move?
 
-[`kin`](../kin) answers where the arm is. This one answers what it takes to get
-there — the weight it is holding up, the inertia it has to accelerate, the
-Coriolis terms that shove a fast joint sideways.
+[`kin`](../arm-kinematics) answers where the arm is. This one answers what it
+takes to get there — the weight it is holding up, the inertia it has to
+accelerate, the Coriolis terms that shove a fast joint sideways.
 
 - One header, one source file. Drop them into any C project.
 - Only needs `libm`. No `malloc` — works fine on a microcontroller.

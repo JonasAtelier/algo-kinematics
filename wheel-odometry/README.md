@@ -171,9 +171,10 @@ off in the wrong direction, so position error grows faster than the distance
 travelled. Left alone, a robot crossing a room is out by centimetres and one
 crossing a warehouse is out by metres. The fix is not a better integrator, it is
 a second opinion from something that measures the world instead of the wheels —
-a gyro fused with [`f_madgwick`](../f_madgwick) to hold the heading, or lidar
-scan matching to correct the position. This library gives you the estimate to
-correct, not the correction.
+a gyro fused with
+[`f_madgwick`](https://github.com/JonasAtelier/algo-filter/tree/stable/madgwick)
+to hold the heading, or lidar scan matching to correct the position. This
+library gives you the estimate to correct, not the correction.
 
 ## What it does not do
 
