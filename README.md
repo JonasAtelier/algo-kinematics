@@ -2,6 +2,16 @@
 
 Calculate how a robot moves from its joint angles or wheel speeds. These C99 libraries cover arms and wheeled bases.
 
+**Contents** · [Choose a library](#choose-a-library) · [Try the example](#try-the-example) · [Add it to your project](#add-it-to-your-project)
+
+## Choose a library
+
+| Library | What it does | Example and API |
+| --- | --- | --- |
+| [arm-kinematics](arm-kinematics/) | Convert between joint angles and the position and orientation of an arm’s tool. | [arm6](arm-kinematics/examples/arm6.c) · [API](arm-kinematics/include/kin.h) |
+| [arm-dynamics](arm-dynamics/) | Calculate joint torques, including those needed to hold an arm against gravity. | [gravity](arm-dynamics/examples/gravity.c) · [API](arm-dynamics/include/dyn.h) |
+| [wheel-odometry](wheel-odometry/) | Convert wheel speeds into movement estimates for differential, mecanum and Ackermann bases. | [rover](wheel-odometry/examples/rover.c) · [API](wheel-odometry/include/mob.h) |
+
 ## Try the example
 
 From this repository’s root, use Make and a C99 compiler. No robot hardware is needed.
@@ -11,14 +21,6 @@ make -C arm-kinematics run
 ```
 
 The six-axis arm example calculates the pose of the tool from joint angles, then solves for angles that reach the same pose. [Example source](arm-kinematics/examples/arm6.c)
-
-## Choose a library
-
-| Library | What it does |
-| --- | --- |
-| [arm-kinematics](arm-kinematics/) | Convert between joint angles and the position and orientation of an arm’s tool. |
-| [arm-dynamics](arm-dynamics/) | Calculate joint torques, including those needed to hold an arm against gravity. |
-| [wheel-odometry](wheel-odometry/) | Convert wheel speeds into movement estimates for differential, mecanum and Ackermann bases. |
 
 ## Add it to your project
 
@@ -47,3 +49,5 @@ target_link_libraries(app PRIVATE algo::arm-kinematics)
 </details>
 
 Run `make check` from the repository root to test the libraries. [MIT license](LICENSE)
+
+[Browse the workshop catalog · Portable C libraries](https://github.com/JonasAtelier/jonas-atelier-libraries#portable-c-libraries)
