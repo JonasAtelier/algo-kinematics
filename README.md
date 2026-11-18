@@ -1,41 +1,38 @@
 # algo-kinematics
 
-<p align="center">
-  <img alt="platform: portable C99" src="https://img.shields.io/badge/platform-portable%20C99-70e1b2?style=flat-square&labelColor=0d2238">
-  <img alt="language: C" src="https://img.shields.io/badge/language-C-70e1b2?style=flat-square&labelColor=0d2238">
-  <img alt="license: MIT" src="https://img.shields.io/badge/license-MIT-f2bd68?style=flat-square&labelColor=0d2238">
-</p>
+Calculate how a robot moves from its joint angles or wheel speeds. These C99 libraries cover arms and wheeled bases.
 
-Kinematics for robots — three small libraries in portable C99, each one
-header and one `.c` file, no heap. Arms and wheeled bases: where it is, and
-what it takes to move it.
+## Try the example
 
-## Libraries
+From this repository’s root, use Make and a C99 compiler. No robot hardware is needed.
 
-| Library | What it does | Pick it when |
-|---|---|---|
-| [arm-kinematics](arm-kinematics) | Forward and inverse kinematics for serial arms | you need joint angles for a hand pose, or the reverse |
-| [arm-dynamics](arm-dynamics) | Rigid-body dynamics for serial arms | you need the torque to hold or move the arm — gravity compensation |
-| [wheel-odometry](wheel-odometry) | Wheel kinematics and dead reckoning for mobile bases | a differential, mecanum or Ackermann base needs wheel speeds or a pose |
+```sh
+make -C arm-kinematics run
+```
 
-## Use one library
+The six-axis arm example calculates the pose of the tool from joint angles, then solves for angles that reach the same pose. [Example source](arm-kinematics/examples/arm6.c)
 
-Every library stands on its own: no shared headers, nothing from one library
-needed by another. Take the one you need and leave the rest. Three ways in.
+## Choose a library
 
-**Copy the files.** `arm-kinematics/include/kin.h` and
-`arm-kinematics/src/kin.c`
-into your project, built with your own sources. That is the whole install.
+| Library | What it does |
+| --- | --- |
+| [arm-kinematics](arm-kinematics/) | Convert between joint angles and the position and orientation of an arm’s tool. |
+| [arm-dynamics](arm-dynamics/) | Calculate joint torques, including those needed to hold an arm against gravity. |
+| [wheel-odometry](wheel-odometry/) | Convert wheel speeds into movement estimates for differential, mecanum and Ackermann bases. |
 
-**CMake.** Every library is its own target, `algo::<folder>`. Add just the
-folder you need:
+## Add it to your project
+
+For plain C, compile the source files in the library’s `src/` directory and add its `include/` directory to your compiler’s include path. For a CMake application named `app`, place this checkout inside your project and use the following lines.
 
 ```cmake
 add_subdirectory(algo-kinematics/arm-kinematics)
 target_link_libraries(app PRIVATE algo::arm-kinematics)
 ```
 
-or, without a copy in your tree:
+For ESP-IDF, add the library directory to `EXTRA_COMPONENT_DIRS` and its name to the consuming component’s `REQUIRES`. Select either the individual libraries or the entire repository to avoid duplicate symbols.
+
+<details>
+<summary>Fetch just this library from GitHub with CMake</summary>
 
 ```cmake
 include(FetchContent)
@@ -47,39 +44,6 @@ FetchContent_MakeAvailable(algo_arm_kinematics)
 target_link_libraries(app PRIVATE algo::arm-kinematics)
 ```
 
-`add_subdirectory(algo-kinematics)`, or FetchContent without `SOURCE_SUBDIR`,
-adds every library's target instead; link the ones you use. Examples and tests
-only build when this repo is the top-level project.
+</details>
 
-**ESP-IDF.** Point `EXTRA_COMPONENT_DIRS` at one library's folder. The
-component is named after the folder:
-
-```cmake
-# top-level CMakeLists.txt of your IDF project, before project()
-list(APPEND EXTRA_COMPONENT_DIRS path/to/algo-kinematics/arm-kinematics)
-```
-
-then `REQUIRES arm-kinematics` in your component's `idf_component_register()`.
-
-Pointing it at the repo root instead gives you **one** component holding
-every library, named after the folder (`algo-kinematics`): IDF does not look
-inside a folder that has its own `CMakeLists.txt`. Use one or the other,
-never both — every symbol would be defined twice.
-
-## Build and test
-
-```sh
-make check    # every library's own tests, stopping at the first failure
-make clean
-```
-
-Or with CMake and CTest. CTest runs the C tests only; the C++ linkage tests
-run under `make check`.
-
-```sh
-cmake -B build && cmake --build build -j2 && ctest --test-dir build
-```
-
-## License
-
-MIT. See [LICENSE](LICENSE).
+Run `make check` from the repository root to test the libraries. [MIT license](LICENSE)
