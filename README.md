@@ -12,6 +12,10 @@ Calculate how a robot moves from its joint angles or wheel speeds. These C99 lib
 | [arm-dynamics](arm-dynamics/) | Calculate joint torques, including those needed to hold an arm against gravity. | [gravity](arm-dynamics/examples/gravity.c) · [API](arm-dynamics/include/dyn.h) |
 | [wheel-odometry](wheel-odometry/) | Convert wheel speeds into movement estimates for differential, mecanum and Ackermann bases. | [rover](wheel-odometry/examples/rover.c) · [API](wheel-odometry/include/mob.h) |
 
+[![Two joint angles determine where the tip of a two-link arm can reach.](arm-kinematics/assets/arm.svg)](arm-kinematics/)
+
+*[Arm kinematics example and API](arm-kinematics/).*
+
 ## Try the example
 
 From this repository’s root, use Make and a C99 compiler. No robot hardware is needed.
