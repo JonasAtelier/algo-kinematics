@@ -52,6 +52,6 @@ target_link_libraries(app PRIVATE algo::arm-kinematics)
 
 </details>
 
-Run `make check` from the repository root to test the libraries. [MIT license](LICENSE)
+Run `make check` from the repository root to test the libraries. [GPL-3.0-only license](LICENSE)
 
 [Browse the workshop catalog · Portable C libraries](https://github.com/JonasAtelier/jonas-atelier-libraries#portable-c-libraries)
